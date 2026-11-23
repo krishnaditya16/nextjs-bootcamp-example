@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
 
 // Admin Shell
 import { AppSidebar } from "@/components/admin/admin-shell/app-sidebar"
@@ -190,12 +191,12 @@ export function SettingsClient() {
 
                     <div className="space-y-2">
                       <Label htmlFor="settings-bio">Biography</Label>
-                      <textarea
+                      <Textarea
                         id="settings-bio"
                         rows={3}
                         value={bio}
                         onChange={(e) => setBio(e.target.value)}
-                        className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        placeholder="Tell us a little bit about yourself..."
                       />
                     </div>
 
