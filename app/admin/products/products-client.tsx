@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   AlertTriangle,
   CheckCircle2,
@@ -36,10 +37,19 @@ import {
   type Product,
 } from "@/data/products-data"
 import { getProductColumns } from "./columns"
+import { getProducts } from "@/app/actions/product"
 
 export function ProductsClient() {
   const router = useRouter()
-  const [products, setProducts] = useState<Product[]>(initialProducts)
+  const queryClient = useQueryClient()
+
+  const { data: products = initialProducts, isLoading } = useQuery({
+    queryKey: ["products"],
+    queryFn: async () => {
+      const data = await getProducts()
+      return data.length > 0 ? data : initialProducts
+    },
+  })
 
   // Delete Dialog state
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
@@ -57,7 +67,9 @@ export function ProductsClient() {
     setIsDeleting(true)
     await new Promise((resolve) => setTimeout(resolve, 400))
 
-    setProducts((prev) => prev.filter((p) => p.id !== deletingProduct.id))
+    queryClient.setQueryData<Product[]>(["products"], (prev) =>
+      prev ? prev.filter((p) => p.id !== deletingProduct.id) : []
+    )
     toast.success(`Deleted "${deletingProduct.name}" from inventory.`)
     setIsDeleting(false)
     setIsDeleteOpen(false)

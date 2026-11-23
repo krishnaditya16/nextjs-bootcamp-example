@@ -4,6 +4,7 @@ import { CartProvider } from "@/components/storefront/cart-context"
 import { CartDrawer } from "@/components/storefront/cart-drawer"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
+import { QueryProvider } from "@/components/query-provider"
 import "./globals.css"
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -30,13 +31,15 @@ export default function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning className={`${plusJakartaSans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans selection:bg-zinc-900 selection:text-white">
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
-          <CartProvider>
-            {children}
-            <CartDrawer />
-          </CartProvider>
-          <Toaster richColors position="top-right" />
-        </ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
+            <CartProvider>
+              {children}
+              <CartDrawer />
+            </CartProvider>
+            <Toaster richColors position="top-right" />
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   )

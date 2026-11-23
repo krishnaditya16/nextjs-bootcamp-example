@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
 import {
   ArrowRight,
   CreditCard,
@@ -33,17 +34,41 @@ import { StatCard } from "@/components/admin/admin-shell/stat-card"
 import { UserNav } from "@/components/admin/auth-guard/user-nav"
 import { DataTable } from "@/components/admin/data-table/data-table"
 import {
+  formatRupiah,
   getProductCoverImage,
   getProductTotalStock,
   initialProducts,
 } from "@/data/products-data"
 import { recentOrderColumns } from "./columns"
-import { recentOrders } from "@/data/orders-data"
+import { recentOrders as fallbackOrders } from "@/data/orders-data"
+import { getDashboardMetrics, getRecentOrders } from "@/app/actions/dashboard"
+import { getProducts } from "@/app/actions/product"
 
 export function DashboardClient() {
   const router = useRouter()
 
-  const lowStockProducts = initialProducts.filter((p) => {
+  const { data: metrics, isLoading: isMetricsLoading } = useQuery({
+    queryKey: ["dashboard-metrics"],
+    queryFn: () => getDashboardMetrics(),
+  })
+
+  const { data: recentOrdersData = fallbackOrders } = useQuery({
+    queryKey: ["recent-orders"],
+    queryFn: async () => {
+      const orders = await getRecentOrders()
+      return orders.length > 0 ? orders : fallbackOrders
+    },
+  })
+
+  const { data: products = initialProducts } = useQuery({
+    queryKey: ["products"],
+    queryFn: async () => {
+      const p = await getProducts()
+      return p.length > 0 ? p : initialProducts
+    },
+  })
+
+  const lowStockProducts = products.filter((p) => {
     const total = getProductTotalStock(p)
     return total <= 10
   })
@@ -92,29 +117,29 @@ export function DashboardClient() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Total Revenue"
-              value="$45,231.89"
-              description="from last month"
+              value={isMetricsLoading ? "..." : formatRupiah(metrics?.totalRevenue ?? 0)}
+              description="from settled orders"
               icon={DollarSign}
               trend={{ value: "+20.1%", positive: true }}
             />
             <StatCard
               title="Orders Placed"
-              value="3,240"
-              description="this billing cycle"
+              value={isMetricsLoading ? "..." : (metrics?.totalOrders ?? 0).toLocaleString("id-ID")}
+              description="all transactions"
               icon={ShoppingBag}
               trend={{ value: "+12.4%", positive: true }}
             />
             <StatCard
               title="Active Products"
-              value={initialProducts.length.toString()}
+              value={isMetricsLoading ? "..." : (metrics?.totalProducts ?? 0).toString()}
               description="in inventory catalog"
               icon={Package}
               trend={{ value: "+8.2%", positive: true }}
             />
             <StatCard
               title="Active Customers"
-              value="1,429"
-              description="verified accounts"
+              value={isMetricsLoading ? "..." : (metrics?.activeCustomers ?? 0).toLocaleString("id-ID")}
+              description="registered users"
               icon={Users}
               trend={{ value: "+4.2%", positive: true }}
             />
@@ -146,7 +171,7 @@ export function DashboardClient() {
               <CardContent className="pt-0">
                 <DataTable
                   columns={recentOrderColumns}
-                  data={recentOrders}
+                  data={recentOrdersData}
                   hideToolbar
                   hidePagination
                 />
