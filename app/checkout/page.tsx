@@ -306,7 +306,11 @@ export default function CheckoutPage() {
                     <div key={item.variant.id} className="flex items-center gap-3 py-2 border-b border-zinc-100 last:border-b-0">
                       <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-zinc-100 shrink-0 border border-zinc-100">
                         <Image
-                          src={item.product.images[0]}
+                          src={
+                            (typeof item.product.images[0] === "string"
+                              ? item.product.images[0]
+                              : item.product.images[0]?.url) || ""
+                          }
                           alt={item.product.title}
                           fill
                           className="object-cover"

@@ -67,7 +67,11 @@ export function CartDrawer() {
                 {/* Thumbnail */}
                 <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-zinc-50 shrink-0 border border-zinc-100">
                   <Image
-                    src={item.product.images[0]}
+                    src={
+                      (typeof item.product.images[0] === "string"
+                        ? item.product.images[0]
+                        : item.product.images[0]?.url) || ""
+                    }
                     alt={item.product.title}
                     fill
                     className="object-cover"

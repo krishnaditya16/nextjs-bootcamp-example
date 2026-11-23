@@ -8,7 +8,7 @@ import { Navbar } from "@/components/storefront/navbar"
 import { Footer } from "@/components/storefront/footer"
 import { ProductCard } from "@/components/storefront/product-card"
 import { useCart } from "@/components/storefront/cart-context"
-import { getProductBySlug, PRODUCTS, formatRupiah, type ProductVariant } from "@/data/products-data"
+import { getProductBySlug, PRODUCTS, formatRupiah, type ProductVariant, type ProductImage } from "@/data/products-data"
 
 export default function ProductDetailPage({
   params,
@@ -67,7 +67,11 @@ function ProductDetailContent({ product }: { product: NonNullable<ReturnType<typ
             <div className="lg:col-span-7 space-y-4">
               <div className="relative aspect-4/3 w-full rounded-xl overflow-hidden bg-zinc-50 border border-zinc-100">
                 <Image
-                  src={product.images[selectedImageIndex] || product.images[0]}
+                  src={
+                    typeof (product.images[selectedImageIndex] || product.images[0]) === "string"
+                      ? ((product.images[selectedImageIndex] || product.images[0]) as string)
+                      : ((product.images[selectedImageIndex] || product.images[0]) as ProductImage)?.url || ""
+                  }
                   alt={product.title}
                   fill
                   priority
@@ -83,19 +87,22 @@ function ProductDetailContent({ product }: { product: NonNullable<ReturnType<typ
               {/* Thumbnails */}
               {product.images.length > 1 && (
                 <div className="flex items-center gap-3">
-                  {product.images.map((img, idx) => (
-                    <button
-                      key={img}
-                      onClick={() => setSelectedImageIndex(idx)}
-                      className={`relative w-20 h-20 rounded-lg overflow-hidden border transition-all ${
-                        selectedImageIndex === idx
-                          ? "border-zinc-900 ring-1 ring-zinc-900"
-                          : "border-zinc-200 hover:border-zinc-300 opacity-70 hover:opacity-100"
-                      }`}
-                    >
-                      <Image src={img} alt={`Thumbnail ${idx + 1}`} fill className="object-cover" />
-                    </button>
-                  ))}
+                  {product.images.map((img, idx) => {
+                    const imgUrl = typeof img === "string" ? img : img.url
+                    return (
+                      <button
+                        key={`${imgUrl}-${idx}`}
+                        onClick={() => setSelectedImageIndex(idx)}
+                        className={`relative w-20 h-20 rounded-lg overflow-hidden border transition-all ${
+                          selectedImageIndex === idx
+                            ? "border-zinc-900 ring-1 ring-zinc-900"
+                            : "border-zinc-200 hover:border-zinc-300 opacity-70 hover:opacity-100"
+                        }`}
+                      >
+                        <Image src={imgUrl} alt={`Thumbnail ${idx + 1}`} fill className="object-cover" />
+                      </button>
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -105,7 +112,7 @@ function ProductDetailContent({ product }: { product: NonNullable<ReturnType<typ
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
-                    {product.category}
+                    {typeof product.category === "object" && product.category !== null ? product.category.name : (product.category || "")}
                   </span>
                   <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-700 bg-zinc-100 px-2.5 py-1 rounded-full">
                     <svg className="w-3.5 h-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20">

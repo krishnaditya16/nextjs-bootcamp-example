@@ -59,11 +59,12 @@ function CatalogContent() {
 
       // Search query filter
       const query = searchQuery.toLowerCase().trim()
+      const categoryName = typeof product.category === "object" && product.category !== null ? product.category.name : (product.category || "")
       const matchesSearch =
         query === "" ||
         product.title.toLowerCase().includes(query) ||
-        product.description.toLowerCase().includes(query) ||
-        product.category.toLowerCase().includes(query)
+        (product.description || "").toLowerCase().includes(query) ||
+        categoryName.toLowerCase().includes(query)
 
       // Price range filter
       let matchesPrice = true
