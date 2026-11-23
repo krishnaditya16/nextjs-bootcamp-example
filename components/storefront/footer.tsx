@@ -21,21 +21,22 @@ export function Footer() {
         <div className="md:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8">
           <div className="flex flex-col gap-3">
             <span className="text-xs font-semibold text-zinc-900 uppercase tracking-wider">
-              Katalog
+              Navigasi
             </span>
             <ul className="flex flex-col gap-2 text-xs text-zinc-600">
               <li><Link href="/products" className="hover:text-zinc-900 transition-colors">Semua Produk</Link></li>
-              <li><Link href="/products?category=audio-minimalis" className="hover:text-zinc-900 transition-colors">Audio Minimalis</Link></li>
-              <li><Link href="/products?category=everyday-carry" className="hover:text-zinc-900 transition-colors">Everyday Carry</Link></li>
-              <li><Link href="/products?category=jam-tangan" className="hover:text-zinc-900 transition-colors">Jam Tangan</Link></li>
+              <li><Link href="/#new-arrivals" className="hover:text-zinc-900 transition-colors">Koleksi Baru</Link></li>
+              <li><Link href="/#promo" className="hover:text-zinc-900 transition-colors">Promo Spesial</Link></li>
+              <li><Link href="/#about" className="hover:text-zinc-900 transition-colors">Tentang Tokokita</Link></li>
             </ul>
           </div>
 
           <div className="flex flex-col gap-3">
             <span className="text-xs font-semibold text-zinc-900 uppercase tracking-wider">
-              Layanan
+              Layanan &amp; Bantuan
             </span>
             <ul className="flex flex-col gap-2 text-xs text-zinc-600">
+              <li><Link href="/#help" className="hover:text-zinc-900 transition-colors">Pusat Bantuan &amp; FAQ</Link></li>
               <li><span className="text-zinc-600">Garansi Resmi 1 Tahun</span></li>
               <li><span className="text-zinc-600">Pengiriman Seluruh Indonesia</span></li>
               <li><span className="text-zinc-600">Pembayaran Xendit Aman</span></li>
