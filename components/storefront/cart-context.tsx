@@ -26,6 +26,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       const saved = localStorage.getItem("tokokita_cart")
       if (saved) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setItems(JSON.parse(saved))
       }
     } catch {

@@ -17,6 +17,7 @@
     "@prisma/client": "7.10.1",
     "@tanstack/react-query": "^5.108.3",
     "@tanstack/react-table": "^8.21.3",
+    "better-auth": "^1.7.27",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^18.0.10",

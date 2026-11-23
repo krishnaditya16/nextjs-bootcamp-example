@@ -28,27 +28,136 @@ import { AppSidebar } from "@/components/admin/admin-shell/app-sidebar"
 import { AdminHeader } from "@/components/admin/admin-shell/admin-header"
 import { PageHeader } from "@/components/admin/admin-shell/page-header"
 import { UserNav } from "@/components/admin/auth-guard/user-nav"
+import { useSession } from "@/lib/auth-client"
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(" ")
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+  }
+  return name.slice(0, 2).toUpperCase()
+}
+
+interface ProfileFormCardProps {
+  sessionUser?: {
+    name?: string | null
+    email?: string | null
+    role?: string | null
+  }
+}
+
+function ProfileFormCard({ sessionUser }: ProfileFormCardProps) {
+  const [name, setName] = useState(sessionUser?.name || "Super Admin")
+  const [email, setEmail] = useState(sessionUser?.email || "admin@tokokita.dev")
+  const role = sessionUser?.role || "admin"
+  const [bio, setBio] = useState(
+    "Administrator toko online Tokokita. Mengelola katalog produk, pesanan, dan konfigurasi sistem."
+  )
+  const [isSavingProfile, setIsSavingProfile] = useState(false)
+
+  const handleSaveProfile = async (e: FormEvent) => {
+    e.preventDefault()
+    setIsSavingProfile(true)
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    setIsSavingProfile(false)
+    toast.success("Profile updated successfully!")
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Profile Details</CardTitle>
+        <CardDescription>
+          Public information visible to team administrators and students.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSaveProfile} className="space-y-5">
+          {/* Avatar row */}
+          <div className="flex items-center gap-4">
+            <Avatar className="size-16">
+              <AvatarImage src="" alt={name} />
+              <AvatarFallback className="bg-primary/10 text-primary font-semibold text-lg">
+                {getInitials(name)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="space-y-1">
+              <div className="text-sm font-medium">{name}</div>
+              <div className="text-xs text-muted-foreground flex items-center gap-2">
+                <span>{email}</span>
+                <Badge variant="outline" className="text-[10px] uppercase h-4 px-1.5 py-0">
+                  {role}
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="settings-name">Full Name</Label>
+              <Input
+                id="settings-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="settings-email">Email Address</Label>
+              <Input
+                id="settings-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="settings-bio">Biography</Label>
+            <Textarea
+              id="settings-bio"
+              rows={3}
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="Tell us a little bit about yourself..."
+            />
+          </div>
+
+          <Button
+            type="submit"
+            size="sm"
+            disabled={isSavingProfile}
+            className="gap-1.5"
+          >
+            {isSavingProfile ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Save className="size-3.5" />
+            )}
+            Save Changes
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
 
 export function SettingsClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { data: session } = useSession()
+
   const tabParam = searchParams.get("tab")
-  const validTab =
+  const activeTab =
     tabParam && ["profile", "account", "notifications"].includes(tabParam)
       ? tabParam
-      : undefined
+      : "profile"
 
-  const [activeTab, setActiveTab] = useState("profile")
-  const currentTab = validTab || activeTab
-
-  // Profile Form State
-  const [name, setName] = useState("Alex Morgan")
-  const [email, setEmail] = useState("alex.morgan@example.com")
-  const [role] = useState("ADMIN")
-  const [bio, setBio] = useState(
-    "Senior Fullstack Instructor & Design Systems Architect building custom shadcn/ui components."
-  )
-  const [isSavingProfile, setIsSavingProfile] = useState(false)
+  const handleTabChange = (value: string) => {
+    router.replace(`/admin/settings?tab=${value}`, { scroll: false })
+  }
 
   // Security Form State
   const [currentPassword, setCurrentPassword] = useState("")
@@ -61,14 +170,6 @@ export function SettingsClient() {
   const [stockAlerts, setStockAlerts] = useState(true)
   const [securityEmails, setSecurityEmails] = useState(true)
   const [isSavingNotifications, setIsSavingNotifications] = useState(false)
-
-  const handleSaveProfile = async (e: FormEvent) => {
-    e.preventDefault()
-    setIsSavingProfile(true)
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    setIsSavingProfile(false)
-    toast.success("Profile updated successfully!")
-  }
 
   const handleUpdatePassword = async (e: FormEvent) => {
     e.preventDefault()
@@ -118,8 +219,8 @@ export function SettingsClient() {
           />
 
           <Tabs
-            value={currentTab}
-            onValueChange={setActiveTab}
+            value={activeTab}
+            onValueChange={handleTabChange}
             className="space-y-6"
           >
             <TabsList className="grid w-full grid-cols-3 max-w-md h-9 p-1">
@@ -139,83 +240,10 @@ export function SettingsClient() {
 
             {/* TAB 1: Profile Information */}
             <TabsContent value="profile" className="space-y-6 outline-hidden">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Profile Details</CardTitle>
-                  <CardDescription>
-                    Public information visible to team administrators and students.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSaveProfile} className="space-y-5">
-                    {/* Avatar row */}
-                    <div className="flex items-center gap-4">
-                      <Avatar className="size-16">
-                        <AvatarImage src="" alt={name} />
-                        <AvatarFallback className="bg-primary/10 text-primary font-semibold text-lg">
-                          AM
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="space-y-1">
-                        <div className="text-sm font-medium">{name}</div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-2">
-                          <span>{email}</span>
-                          <Badge variant="outline" className="text-[10px] uppercase h-4 px-1.5 py-0">
-                            {role}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="settings-name">Full Name</Label>
-                        <Input
-                          id="settings-name"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="settings-email">Email Address</Label>
-                        <Input
-                          id="settings-email"
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="settings-bio">Biography</Label>
-                      <Textarea
-                        id="settings-bio"
-                        rows={3}
-                        value={bio}
-                        onChange={(e) => setBio(e.target.value)}
-                        placeholder="Tell us a little bit about yourself..."
-                      />
-                    </div>
-
-                    <Button
-                      type="submit"
-                      size="sm"
-                      disabled={isSavingProfile}
-                      className="gap-1.5"
-                    >
-                      {isSavingProfile ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                      ) : (
-                        <Save className="size-3.5" />
-                      )}
-                      Save Changes
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
+              <ProfileFormCard
+                key={session?.user?.id || session?.user?.email || "loading"}
+                sessionUser={session?.user}
+              />
             </TabsContent>
 
             {/* TAB 2: Security & Credentials */}

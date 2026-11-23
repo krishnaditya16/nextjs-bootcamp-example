@@ -22,19 +22,51 @@ export interface PaginatedProductsResult {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function serializeProduct(product: any): Product {
-  const serializedVariants = (product.variants || []).map((v: any) => ({
+interface RawVariant {
+  id: string
+  sku: string
+  size?: string | null
+  color?: string | null
+  price: number | string | { toString(): string }
+  stock: number
+  productId: string
+}
+
+interface RawImage {
+  id: string
+  url: string
+  altText?: string | null
+  order: number
+  productId: string
+  createdAt?: string | Date
+}
+
+interface RawProduct {
+  id: string
+  name: string
+  slug: string
+  description?: string | null
+  isActive?: boolean
+  categoryId?: string | null
+  createdAt?: string | Date
+  updatedAt?: string | Date
+  category?: { id: string; name: string; slug: string } | null
+  variants?: RawVariant[]
+  images?: RawImage[]
+}
+
+function serializeProduct(product: RawProduct): Product {
+  const serializedVariants = (product.variants || []).map((v: RawVariant) => ({
     id: v.id,
     sku: v.sku,
-    size: v.size,
-    color: v.color,
+    size: v.size || "",
+    color: v.color || "",
     price: Number(v.price),
     stock: v.stock,
     productId: v.productId,
   }))
 
-  const serializedImages = (product.images || []).map((img: any) => ({
+  const serializedImages = (product.images || []).map((img: RawImage) => ({
     id: img.id,
     url: img.url,
     altText: img.altText,
@@ -54,8 +86,14 @@ function serializeProduct(product: any): Product {
     isActive: product.isActive,
     createdAt: product.createdAt ? new Date(product.createdAt).toISOString() : new Date().toISOString(),
     updatedAt: product.updatedAt ? new Date(product.updatedAt).toISOString() : new Date().toISOString(),
-    categoryId: product.categoryId,
-    category: product.category,
+    categoryId: product.categoryId || undefined,
+    category: product.category
+      ? {
+          id: product.category.id,
+          name: product.category.name,
+          slug: product.category.slug,
+        }
+      : null,
     categorySlug: product.category?.slug,
     price: basePrice,
     rating: 4.8,

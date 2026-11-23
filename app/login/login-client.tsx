@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import { LoginForm } from "@/components/admin/auth-guard/login-form"
+import { signIn } from "@/lib/auth-client"
 
 export function LoginClient() {
   const router = useRouter()
@@ -15,23 +16,20 @@ export function LoginClient() {
     setIsLoading(true)
     setError(undefined)
 
-    // Simulate authentication check
-    await new Promise((resolve) => setTimeout(resolve, 600))
+    const { error: authError } = await signIn.email({
+      email: data.email,
+      password: data.password,
+    })
 
-    if (!data.email.includes("@")) {
-      setError("Please provide a valid email address.")
+    if (authError) {
+      setError(authError.message || "Email atau password salah.")
       setIsLoading(false)
       return
     }
 
-    if (data.password.length < 6) {
-      setError("Password must be at least 6 characters.")
-      setIsLoading(false)
-      return
-    }
-
-    toast.success("Welcome back!")
+    toast.success("Berhasil masuk!")
     router.push("/admin")
+    router.refresh()
   }
 
   return (

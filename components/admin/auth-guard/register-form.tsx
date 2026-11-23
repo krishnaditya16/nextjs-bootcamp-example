@@ -2,6 +2,8 @@
 
 import { useState, type ComponentPropsWithoutRef, type FormEvent } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { Loader2 } from "lucide-react"
 
@@ -16,6 +18,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { authClient } from "@/lib/auth-client"
 
 export interface RegisterFormProps extends Omit<ComponentPropsWithoutRef<"div">, "onSubmit"> {
   onSubmit?: (data: { name: string; email: string; password: string }) => Promise<void> | void
@@ -36,6 +39,7 @@ export function RegisterForm({
   loginHref = "/login",
   ...props
 }: RegisterFormProps) {
+  const router = useRouter()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -80,6 +84,28 @@ export function RegisterForm({
         } else {
           setLocalError("Registration failed. Please try again.")
         }
+      } finally {
+        setInternalLoading(false)
+      }
+    } else {
+      try {
+        setInternalLoading(true)
+        const { error: authError } = await authClient.signUp.email({
+          name,
+          email,
+          password,
+        })
+
+        if (authError) {
+          setLocalError(authError.message || "Gagal mendaftarkan akun.")
+          return
+        }
+
+        toast.success(`Akun berhasil dibuat untuk ${name}!`)
+        router.push("/admin")
+        router.refresh()
+      } catch {
+        setLocalError("Gagal menghubungi server autentikasi.")
       } finally {
         setInternalLoading(false)
       }

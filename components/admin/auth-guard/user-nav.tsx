@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { signOut, useSession } from "@/lib/auth-client"
 
 export interface UserNavProps {
   user?: {
@@ -37,18 +38,29 @@ function getInitials(name: string): string {
 }
 
 export function UserNav({
-  user = {
-    name: "Alex Morgan",
-    email: "alex.morgan@example.com",
-    role: "ADMIN",
-  },
+  user: controlledUser,
   onLogout,
   onProfileClick,
   onSettingsClick,
 }: UserNavProps) {
   const router = useRouter()
+  const { data: session } = useSession()
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sessionUser = session?.user as any
+  const user = controlledUser || (sessionUser ? {
+    name: sessionUser.name || "Super Admin",
+    email: sessionUser.email || "admin@tokokita.dev",
+    avatarUrl: sessionUser.image || undefined,
+    role: sessionUser.role || "admin",
+  } : {
+    name: "Super Admin",
+    email: "admin@tokokita.dev",
+    role: "admin",
+  })
+
   const initials = getInitials(user.name || "Admin")
-  const isAdmin = user.role === "ADMIN"
+  const isAdmin = user.role?.toLowerCase() === "admin"
 
   const handleProfileClick = () => {
     if (onProfileClick) {
@@ -64,6 +76,20 @@ export function UserNav({
     } else {
       router.push("/admin/settings?tab=account")
     }
+  }
+
+  const handleLogout = async () => {
+    if (onLogout) {
+      onLogout()
+    }
+    await signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push("/login")
+          router.refresh()
+        },
+      },
+    })
   }
 
   return (
@@ -125,7 +151,7 @@ export function UserNav({
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onClick={onLogout}
+          onClick={handleLogout}
           className="text-xs cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
         >
           <LogOut className="mr-2 size-3.5" />

@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Navbar } from "@/components/storefront/navbar"
 import { Footer } from "@/components/storefront/footer"
 import { ProductCard } from "@/components/storefront/product-card"
-import { CATEGORIES, PRODUCTS, formatRupiah } from "@/data/products-data"
+import { CATEGORIES, PRODUCTS } from "@/data/products-data"
 
 type PriceRangeKey = "all" | "under-1m" | "1m-2.5m" | "above-2.5m" | "custom"
 
@@ -105,8 +105,8 @@ function CatalogContent() {
     sortBy,
   ])
 
-  // Sidebar filter component used in both desktop sidebar and mobile drawer
-  const FilterControls = () => (
+  // Sidebar filter JSX used in both desktop sidebar and mobile drawer
+  const filterControls = (
     <div className="space-y-6 text-sm">
       {/* Category Section */}
       <div>
@@ -311,7 +311,7 @@ function CatalogContent() {
                 </button>
               )}
             </div>
-            <FilterControls />
+            {filterControls}
           </aside>
 
           {/* Right Product Grid Column */}
@@ -488,7 +488,7 @@ function CatalogContent() {
               </button>
             </div>
 
-            <FilterControls />
+            {filterControls}
 
             <div className="pt-6 mt-6 border-t border-zinc-100">
               <button

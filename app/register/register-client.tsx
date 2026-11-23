@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import { RegisterForm } from "@/components/admin/auth-guard/register-form"
+import { signUp } from "@/lib/auth-client"
 
 export function RegisterClient() {
   const router = useRouter()
@@ -15,29 +16,21 @@ export function RegisterClient() {
     setIsLoading(true)
     setError(undefined)
 
-    // Simulate account registration
-    await new Promise((resolve) => setTimeout(resolve, 600))
+    const { error: authError } = await signUp.email({
+      name: data.name,
+      email: data.email,
+      password: data.password,
+    })
 
-    if (!data.name.trim()) {
-      setError("Please provide your full name.")
+    if (authError) {
+      setError(authError.message || "Gagal mendaftarkan akun.")
       setIsLoading(false)
       return
     }
 
-    if (!data.email.includes("@")) {
-      setError("Please provide a valid email address.")
-      setIsLoading(false)
-      return
-    }
-
-    if (data.password.length < 6) {
-      setError("Password must be at least 6 characters.")
-      setIsLoading(false)
-      return
-    }
-
-    toast.success(`Account created for ${data.name}! Welcome to Admin Portal.`)
+    toast.success(`Akun berhasil dibuat untuk ${data.name}!`)
     router.push("/admin")
+    router.refresh()
   }
 
   return (

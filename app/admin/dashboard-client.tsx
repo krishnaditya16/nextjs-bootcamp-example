@@ -79,16 +79,7 @@ export function DashboardClient() {
       <SidebarInset>
         <AdminHeader
           breadcrumbs={[{ label: "Dashboard" }]}
-          userNav={
-            <UserNav
-              user={{
-                name: "Instructor Alex",
-                email: "instructor@bootcamp.dev",
-                role: "ADMIN",
-              }}
-              onLogout={() => router.push("/login")}
-            />
-          }
+          userNav={<UserNav />}
         />
 
         <main className="flex-1 p-6 space-y-6">

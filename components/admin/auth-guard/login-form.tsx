@@ -2,6 +2,8 @@
 
 import { useState, type ComponentPropsWithoutRef, type FormEvent } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { Loader2 } from "lucide-react"
 
@@ -16,6 +18,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { authClient } from "@/lib/auth-client"
 
 export interface LoginFormProps extends Omit<ComponentPropsWithoutRef<"div">, "onSubmit"> {
   onSubmit?: (data: { email: string; password: string }) => Promise<void> | void
@@ -38,6 +41,7 @@ export function LoginForm({
   forgotPasswordHref,
   ...props
 }: LoginFormProps) {
+  const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [internalLoading, setInternalLoading] = useState(false)
@@ -65,6 +69,27 @@ export function LoginForm({
         } else {
           setLocalError("Failed to sign in. Please check your credentials.")
         }
+      } finally {
+        setInternalLoading(false)
+      }
+    } else {
+      try {
+        setInternalLoading(true)
+        const { error: authError } = await authClient.signIn.email({
+          email,
+          password,
+        })
+
+        if (authError) {
+          setLocalError(authError.message || "Email atau password salah.")
+          return
+        }
+
+        toast.success("Berhasil masuk!")
+        router.push("/admin")
+        router.refresh()
+      } catch {
+        setLocalError("Gagal menghubungi server autentikasi.")
       } finally {
         setInternalLoading(false)
       }

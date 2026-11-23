@@ -2,6 +2,7 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import "dotenv/config";
+import { auth } from "../lib/auth";
 
 const url = process.env.DATABASE_URL!;
 const connectionString = url.replace("mysql://", "mariadb://");
@@ -16,6 +17,8 @@ async function main() {
   await prisma.productVariant.deleteMany({});
   await prisma.product.deleteMany({});
   await prisma.category.deleteMany({});
+  await prisma.session.deleteMany({});
+  await prisma.account.deleteMany({});
   await prisma.user.deleteMany({});
   await prisma.article.deleteMany({});
 
@@ -48,30 +51,36 @@ async function main() {
     ],
   });
 
-  console.log("Mengisi data akun pengguna...");
-  await prisma.user.create({
-    data: {
-      name: "Instructor Alex",
-      email: "instructor@tokokita.dev",
-      role: "admin",
+  console.log("Mengisi data akun pengguna dan kredensial Better Auth...");
+  const adminRes = await auth.api.signUpEmail({
+    body: {
+      name: "Super Admin",
+      email: "admin@tokokita.dev",
+      password: "password123",
     },
   });
+  await prisma.user.update({
+    where: { id: adminRes.user.id },
+    data: { role: "admin" },
+  });
 
-  const customer1 = await prisma.user.create({
-    data: {
+  const customer1Res = await auth.api.signUpEmail({
+    body: {
       name: "Olivia Martin",
       email: "olivia.martin@email.com",
-      role: "user",
+      password: "password123",
     },
   });
+  const customer1 = customer1Res.user;
 
-  const customer2 = await prisma.user.create({
-    data: {
+  const customer2Res = await auth.api.signUpEmail({
+    body: {
       name: "Jackson Lee",
       email: "jackson.lee@email.com",
-      role: "user",
+      password: "password123",
     },
   });
+  const customer2 = customer2Res.user;
 
   console.log("Mengisi data kategori...");
   const electronics = await prisma.category.create({
@@ -199,7 +208,7 @@ async function main() {
     include: { variants: true },
   });
 
-  const shoes = await prisma.product.create({
+  await prisma.product.create({
     data: {
       name: "Sepatu Lari Ultra Cushioning",
       slug: "sepatu-lari-ultra-cushioning",

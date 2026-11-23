@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, useTransition } from "react"
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -71,7 +71,7 @@ export function ProductsClient() {
   const debouncedSearch = useDebounce(searchInput, 350)
 
   // 3. Fungsi pembantu untuk memperbarui parameter URL secara bersih
-  const updateUrlParams = (updates: Record<string, string | number | null>) => {
+  const updateUrlParams = useCallback((updates: Record<string, string | number | null>) => {
     const params = new URLSearchParams(searchParams.toString())
 
     Object.entries(updates).forEach(([key, value]) => {
@@ -85,7 +85,7 @@ export function ProductsClient() {
     startTransition(() => {
       router.replace(`${pathname}?${params.toString()}`, { scroll: false })
     })
-  }
+  }, [pathname, router, searchParams])
 
   // 4. Sinkronkan nilai debounced search ke URL dan reset ke halaman 1
   useEffect(() => {
@@ -95,7 +95,7 @@ export function ProductsClient() {
         page: 1,
       })
     }
-  }, [debouncedSearch])
+  }, [debouncedSearch, searchFromUrl, updateUrlParams])
 
   // 5. Eksekusi query TanStack dengan cache keepPreviousData
   const { data, isFetching } = useQuery({

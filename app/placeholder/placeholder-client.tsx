@@ -36,7 +36,7 @@ export function PlaceholderClient() {
           userNav={
             <UserNav
               user={{
-                name: "Instructor Alex",
+                name: "Super Admin",
                 email: "instructor@bootcamp.dev",
                 role: "ADMIN",
               }}
