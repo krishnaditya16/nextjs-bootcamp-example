@@ -2,6 +2,21 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { LogOut, Shield, User as UserIcon } from "lucide-react"
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { signOut, useSession } from "@/lib/auth-client"
 import { useCart } from "./cart-context"
 
 const NAV_LINKS = [
@@ -10,9 +25,34 @@ const NAV_LINKS = [
   { label: "Tentang", href: "/#about" },
 ]
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(" ")
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+  }
+  return name.slice(0, 2).toUpperCase()
+}
+
 export function Navbar() {
+  const router = useRouter()
   const { totalCount, setIsCartOpen } = useCart()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { data: session } = useSession()
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const user = session?.user as any
+  const isAdmin = user?.role === "admin"
+  const initials = user?.name ? getInitials(user.name) : "U"
+
+  const handleSignOut = async () => {
+    await signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.refresh()
+        },
+      },
+    })
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-zinc-200/80">
@@ -73,13 +113,77 @@ export function Navbar() {
 
           <div className="h-4 w-px bg-zinc-200 hidden sm:block mx-1" />
 
-          {/* Login Button */}
-          <Link
-            href="/login"
-            className="text-xs sm:text-sm font-medium px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
-          >
-            Masuk
-          </Link>
+          {/* User Auth Action (Profile Dropdown if logged in, else "Masuk" button) */}
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <button
+                    className="flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
+                    aria-label="Menu akun pengguna"
+                  >
+                    <Avatar className="h-8 w-8 cursor-pointer ring-1 ring-zinc-200 hover:ring-zinc-400 transition-all">
+                      <AvatarImage src={user.image || ""} alt={user.name || "User"} />
+                      <AvatarFallback className="text-xs font-semibold bg-zinc-900 text-white">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                }
+              />
+              <DropdownMenuContent align="end" className="w-56 p-1.5">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="font-normal p-2">
+                    <div className="flex flex-col space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium leading-none text-zinc-900">{user.name}</p>
+                        <Badge variant="outline" className="text-[10px] uppercase font-semibold h-4 px-1.5">
+                          {user.role || "user"}
+                        </Badge>
+                      </div>
+                      <p className="text-xs leading-none text-zinc-500 truncate">{user.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  {isAdmin && (
+                    <DropdownMenuItem
+                      onClick={() => router.push("/admin")}
+                      className="cursor-pointer gap-2"
+                    >
+                      <Shield className="h-4 w-4" />
+                      <span>Admin Portal</span>
+                    </DropdownMenuItem>
+                  )}
+                  {isAdmin && (
+                    <DropdownMenuItem
+                      onClick={() => router.push("/admin/settings?tab=profile")}
+                      className="cursor-pointer gap-2"
+                    >
+                      <UserIcon className="h-4 w-4" />
+                      <span>Pengaturan Akun</span>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuGroup>
+                {isAdmin && <DropdownMenuSeparator />}
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="cursor-pointer gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Keluar</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link
+              href="/login"
+              className="text-xs sm:text-sm font-medium px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
+            >
+              Masuk
+            </Link>
+          )}
 
           {/* Mobile Menu Toggle */}
           <button
@@ -102,17 +206,66 @@ export function Navbar() {
 
       {/* Mobile Menu Dropdown */}
       {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-zinc-200 bg-white px-4 py-4 space-y-1">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg text-sm font-medium text-zinc-700 hover:text-zinc-950 hover:bg-zinc-50"
-            >
-              {link.label}
-            </Link>
-          ))}
+        <div className="md:hidden border-t border-zinc-200 bg-white px-4 py-4 space-y-3">
+          <div className="space-y-1">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-sm font-medium text-zinc-700 hover:text-zinc-950 hover:bg-zinc-50"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="pt-3 border-t border-zinc-100">
+            {user ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 px-3 py-2 bg-zinc-50 rounded-xl">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.image || ""} alt={user.name || "User"} />
+                    <AvatarFallback className="text-xs font-semibold bg-zinc-900 text-white">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold text-zinc-900 truncate">{user.name}</div>
+                    <div className="text-[11px] text-zinc-500 truncate">{user.email}</div>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] uppercase font-semibold h-4 px-1.5">
+                    {user.role || "user"}
+                  </Badge>
+                </div>
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                  >
+                    <Shield className="h-4 w-4" />
+                    <span>Admin Portal</span>
+                  </Link>
+                )}
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 text-left"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Keluar</span>
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block w-full py-2.5 px-4 text-center rounded-lg bg-zinc-900 text-white text-xs font-medium hover:bg-zinc-800 transition-colors"
+              >
+                Masuk
+              </Link>
+            )}
+          </div>
         </div>
       )}
     </header>
