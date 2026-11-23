@@ -139,7 +139,7 @@ export function CartDrawer() {
                 Lanjut Belanja
               </button>
               <Link
-                href="/products"
+                href="/checkout"
                 onClick={() => setIsCartOpen(false)}
                 className="w-full py-3 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-semibold text-xs text-center transition-colors shadow-sm"
               >
