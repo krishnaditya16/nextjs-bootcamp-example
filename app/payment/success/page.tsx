@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect } from "react"
+import { Suspense, useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Navbar } from "@/components/storefront/navbar"
@@ -17,9 +17,13 @@ function PaymentSuccessContent() {
   const email = searchParams.get("email") || "pembeli@example.com"
   const amount = amountParam ? parseInt(amountParam, 10) : 1850000
 
-  // Clear cart on successful mount
+  // Clear cart only once when landing on the success page
+  const hasClearedRef = useRef(false)
   useEffect(() => {
-    clearCart()
+    if (!hasClearedRef.current) {
+      hasClearedRef.current = true
+      clearCart()
+    }
   }, [clearCart])
 
   return (

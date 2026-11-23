@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { type CartItem, type Product, type ProductVariant } from "@/data/products-data"
 
 interface CartContextType {
@@ -42,7 +42,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items])
 
-  const addItem = (product: Product, variant: ProductVariant, quantity = 1) => {
+  const addItem = useCallback((product: Product, variant: ProductVariant, quantity = 1) => {
     setItems((prev) => {
       const existing = prev.find((item) => item.variant.id === variant.id)
       if (existing) {
@@ -55,15 +55,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return [...prev, { product, variant, quantity }]
     })
     setIsCartOpen(true)
-  }
+  }, [])
 
-  const removeItem = (variantId: string) => {
+  const removeItem = useCallback((variantId: string) => {
     setItems((prev) => prev.filter((item) => item.variant.id !== variantId))
-  }
+  }, [])
 
-  const updateQuantity = (variantId: string, quantity: number) => {
+  const updateQuantity = useCallback((variantId: string, quantity: number) => {
     if (quantity <= 0) {
-      removeItem(variantId)
+      setItems((prev) => prev.filter((item) => item.variant.id !== variantId))
       return
     }
     setItems((prev) =>
@@ -71,9 +71,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         item.variant.id === variantId ? { ...item, quantity } : item
       )
     )
-  }
+  }, [])
 
-  const clearCart = () => setItems([])
+  const clearCart = useCallback(() => {
+    setItems([])
+  }, [])
 
   const totalCount = items.reduce((sum, item) => sum + item.quantity, 0)
   const subtotal = items.reduce(
