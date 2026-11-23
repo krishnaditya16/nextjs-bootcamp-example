@@ -51,7 +51,7 @@ import {
   type Product,
 } from "@/data/products-data"
 import { getProductColumns } from "./columns"
-import { getPaginatedProducts } from "@/app/actions/product"
+import { getPaginatedProducts, deleteProduct } from "@/app/actions/product"
 import { useDebounce } from "@/hooks/use-debounce"
 
 export function ProductsClient() {
@@ -131,11 +131,16 @@ export function ProductsClient() {
     if (!deletingProduct) return
 
     setIsDeleting(true)
-    await new Promise((resolve) => setTimeout(resolve, 400))
+    const res = await deleteProduct(deletingProduct.id)
+    setIsDeleting(false)
+
+    if (res?.error) {
+      toast.error(res.error)
+      return
+    }
 
     queryClient.invalidateQueries({ queryKey: ["products"] })
     toast.success(`Deleted "${deletingProduct.name}" from inventory.`)
-    setIsDeleting(false)
     setIsDeleteOpen(false)
   }
 

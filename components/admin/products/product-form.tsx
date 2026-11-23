@@ -47,6 +47,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { ConfirmDiscardDialog } from "@/components/admin/crud-primitives/confirm-discard-dialog"
+import { slugify } from "@/lib/utils"
 import {
   DEFAULT_CATEGORIES,
   type Product,
@@ -101,15 +102,6 @@ export interface ProductFormProps {
   backHref?: string
 }
 
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/[\s_-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-}
-
 export function ProductForm({
   initialData,
   categories = DEFAULT_CATEGORIES,
@@ -125,7 +117,7 @@ export function ProductForm({
   // Product Basic Info State
   const [name, setName] = useState(initialData?.name ?? "")
   const [slug, setSlug] = useState(initialData?.slug ?? "")
-  const [isSlugCustomized, setIsSlugCustomized] = useState(Boolean(initialData?.slug))
+  const [isSlugCustomized, setIsSlugCustomized] = useState(false)
   const [description, setDescription] = useState(initialData?.description ?? "")
   const [isActive, setIsActive] = useState<boolean>(initialData?.isActive ?? true)
   const [categoryId, setCategoryId] = useState<string>(
@@ -478,9 +470,22 @@ export function ProductForm({
                   <Label htmlFor="product-slug">
                     URL Slug <span className="text-destructive">*</span>
                   </Label>
-                  <span className="text-xs text-muted-foreground font-mono">
-                    /products/{slug || "..."}
-                  </span>
+                  {isSlugCustomized ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSlugCustomized(false)
+                        setSlug(slugify(name))
+                      }}
+                      className="text-xs text-primary hover:underline cursor-pointer"
+                    >
+                      Sync with name
+                    </button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground font-mono">
+                      /products/{slug || "..."}
+                    </span>
+                  )}
                 </div>
                 <Input
                   id="product-slug"

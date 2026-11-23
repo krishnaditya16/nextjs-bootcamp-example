@@ -70,9 +70,8 @@ export const defaultNavGroups: NavGroup[] = [
       },
       {
         title: "Categories",
-        href: "#",
+        href: "/admin/categories",
         icon: FolderTree,
-        badge: "Soon",
       },
     ],
   },
@@ -176,6 +175,14 @@ export function AppSidebar({
         pathname.startsWith("/admin/products/") ||
         pathname === "/products" ||
         pathname.startsWith("/products/")
+      )
+    }
+    if (href === "/admin/categories" || href === "/categories") {
+      return (
+        pathname === "/admin/categories" ||
+        pathname.startsWith("/admin/categories/") ||
+        pathname === "/categories" ||
+        pathname.startsWith("/categories/")
       )
     }
     if (href === "/admin/settings" || href === "/settings") {

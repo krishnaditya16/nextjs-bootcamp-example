@@ -1,8 +1,23 @@
 "use server"
 
+import { headers } from "next/headers"
+import { revalidatePath } from "next/cache"
+import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { Prisma } from "@prisma/client"
+import { productSchema, type ProductFormValues } from "@/lib/schemas/product"
 import type { Product } from "@/data/products-data"
+
+async function requireAdmin() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!session || (session.user as any)?.role !== "admin") {
+    throw new Error("Akses ditolak. Hanya admin yang diizinkan.")
+  }
+}
 
 export interface GetProductsParams {
   page?: number
@@ -243,5 +258,163 @@ export async function getPaginatedProducts({
         limit: 10,
       },
     }
+  }
+}
+
+export async function getProductById(id: string): Promise<Product | null> {
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        variants: {
+          select: {
+            id: true,
+            sku: true,
+            size: true,
+            color: true,
+            price: true,
+            stock: true,
+            productId: true,
+          },
+        },
+        images: {
+          orderBy: { order: "asc" },
+          select: {
+            id: true,
+            url: true,
+            altText: true,
+            order: true,
+            productId: true,
+            createdAt: true,
+          },
+        },
+      },
+    })
+
+    if (!product) return null
+    return serializeProduct(product)
+  } catch (error) {
+    console.error("Gagal mengambil data produk by ID:", error)
+    return null
+  }
+}
+
+export async function createProduct(values: ProductFormValues) {
+  await requireAdmin()
+
+  const parsed = productSchema.safeParse(values)
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Data produk tidak valid" }
+  }
+
+  try {
+    const product = await prisma.product.create({
+      data: {
+        name: parsed.data.name,
+        slug: parsed.data.slug,
+        description: parsed.data.description || null,
+        isActive: parsed.data.isActive,
+        categoryId: parsed.data.categoryId || null,
+        variants: {
+          create: parsed.data.variants.map((v) => ({
+            sku: v.sku,
+            size: v.size || null,
+            color: v.color || null,
+            price: v.price,
+            stock: v.stock,
+          })),
+        },
+      },
+      include: {
+        category: true,
+        variants: true,
+        images: true,
+      },
+    })
+
+    revalidatePath("/admin/products")
+    revalidatePath("/products")
+    return { data: serializeProduct(product) }
+  } catch (err: unknown) {
+    if (typeof err === "object" && err !== null && "code" in err && (err as { code: string }).code === "P2002") {
+      return { error: "Slug atau SKU varian sudah digunakan." }
+    }
+    return { error: "Gagal menyimpan produk baru." }
+  }
+}
+
+export async function updateProduct(id: string, values: ProductFormValues) {
+  await requireAdmin()
+
+  const parsed = productSchema.safeParse(values)
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Data produk tidak valid" }
+  }
+
+  try {
+    const updated = await prisma.$transaction(async (tx) => {
+      // 1. Hapus varian lama produk
+      await tx.productVariant.deleteMany({
+        where: { productId: id },
+      })
+
+      // 2. Update field produk dan buat varian baru
+      return tx.product.update({
+        where: { id },
+        data: {
+          name: parsed.data.name,
+          slug: parsed.data.slug,
+          description: parsed.data.description || null,
+          isActive: parsed.data.isActive,
+          categoryId: parsed.data.categoryId || null,
+          variants: {
+            create: parsed.data.variants.map((v) => ({
+              sku: v.sku,
+              size: v.size || null,
+              color: v.color || null,
+              price: v.price,
+              stock: v.stock,
+            })),
+          },
+        },
+        include: {
+          category: true,
+          variants: true,
+          images: true,
+        },
+      })
+    })
+
+    revalidatePath("/admin/products")
+    revalidatePath(`/admin/products/${id}/edit`)
+    revalidatePath(`/products/${updated.slug}`)
+    return { data: serializeProduct(updated) }
+  } catch (err: unknown) {
+    if (typeof err === "object" && err !== null && "code" in err && (err as { code: string }).code === "P2002") {
+      return { error: "Slug atau SKU varian sudah digunakan." }
+    }
+    return { error: "Gagal memperbarui produk." }
+  }
+}
+
+export async function deleteProduct(id: string) {
+  await requireAdmin()
+
+  try {
+    await prisma.product.delete({
+      where: { id },
+    })
+
+    revalidatePath("/admin/products")
+    return { success: true }
+  } catch {
+    return { error: "Gagal menghapus produk dari database." }
   }
 }
