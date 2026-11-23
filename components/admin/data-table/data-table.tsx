@@ -87,7 +87,9 @@ export function DataTable<TData, TValue>({
       )}
       <div
         className={cn(
-          borderless ? "overflow-hidden" : "rounded-md border bg-card"
+          borderless
+            ? "overflow-hidden"
+            : "rounded-xl border border-border/80 bg-card overflow-hidden shadow-xs"
         )}
       >
         <Table>
