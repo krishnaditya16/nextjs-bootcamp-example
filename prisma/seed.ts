@@ -1,3 +1,4 @@
+// prisma/seed.ts
 import { PrismaClient } from "@prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import "dotenv/config";
@@ -8,11 +9,17 @@ const adapter = new PrismaMariaDb(connectionString);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log("Memulai database seeding...");
+  console.log("Membersihkan data lama...");
+  await prisma.orderItem.deleteMany({});
+  await prisma.order.deleteMany({});
+  await prisma.productImage.deleteMany({});
+  await prisma.productVariant.deleteMany({});
+  await prisma.product.deleteMany({});
+  await prisma.category.deleteMany({});
+  await prisma.user.deleteMany({});
+  await prisma.article.deleteMany({});
 
-  // Bersihkan data lama agar proses seeding bersifat idempotent
-  await prisma.article.deleteMany();
-
+  console.log("Mengisi data artikel...");
   await prisma.article.createMany({
     data: [
       {
@@ -41,8 +48,242 @@ async function main() {
     ],
   });
 
-  const count = await prisma.article.count();
-  console.log(`Seeding selesai: ${count} artikel berhasil ditambahkan.`);
+  console.log("Mengisi data akun pengguna...");
+  await prisma.user.create({
+    data: {
+      name: "Instructor Alex",
+      email: "instructor@tokokita.dev",
+      role: "admin",
+    },
+  });
+
+  const customer1 = await prisma.user.create({
+    data: {
+      name: "Olivia Martin",
+      email: "olivia.martin@email.com",
+      role: "user",
+    },
+  });
+
+  const customer2 = await prisma.user.create({
+    data: {
+      name: "Jackson Lee",
+      email: "jackson.lee@email.com",
+      role: "user",
+    },
+  });
+
+  console.log("Mengisi data kategori...");
+  const electronics = await prisma.category.create({
+    data: { name: "Elektronik & Gadget", slug: "elektronik-gadget" },
+  });
+
+  const fashion = await prisma.category.create({
+    data: { name: "Pakaian & Fashion", slug: "pakaian-fashion" },
+  });
+
+  const sports = await prisma.category.create({
+    data: { name: "Sepatu & Olahraga", slug: "sepatu-olahraga" },
+  });
+
+  console.log("Mengisi produk, varian, dan galeri gambar...");
+  const headphones = await prisma.product.create({
+    data: {
+      name: "Wireless Noise-Canceling Headphones Pro",
+      slug: "wireless-headphones-pro",
+      description:
+        "Headphone nirkabel premium dengan suara jernih dan active noise canceling.",
+      categoryId: electronics.id,
+      images: {
+        create: [
+          {
+            url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e",
+            altText: "Headphone Hitam Utama",
+            order: 0,
+          },
+          {
+            url: "https://images.unsplash.com/photo-1484704849700-f032a568e944",
+            altText: "Headphone Tampak Samping",
+            order: 1,
+          },
+        ],
+      },
+      variants: {
+        create: [
+          {
+            sku: "WH-PRO-BLK",
+            color: "Hitam",
+            size: "Universal",
+            price: 1450000,
+            stock: 25,
+          },
+          {
+            sku: "WH-PRO-SLV",
+            color: "Silver",
+            size: "Universal",
+            price: 1450000,
+            stock: 18,
+          },
+        ],
+      },
+    },
+    include: { variants: true },
+  });
+
+  const keyboard = await prisma.product.create({
+    data: {
+      name: "Mechanical Gaming Keyboard RGB",
+      slug: "mechanical-keyboard-rgb",
+      description:
+        "Keyboard mekanik dengan switch tactile dan pencahayaan RGB per tombol.",
+      categoryId: electronics.id,
+      images: {
+        create: [
+          {
+            url: "https://images.unsplash.com/photo-1587829741301-dc798b83add3",
+            altText: "Keyboard RGB Utama",
+            order: 0,
+          },
+        ],
+      },
+      variants: {
+        create: [
+          {
+            sku: "KB-RGB-BLU",
+            color: "Navy",
+            size: "Tenkeyless",
+            price: 820000,
+            stock: 30,
+          },
+        ],
+      },
+    },
+    include: { variants: true },
+  });
+
+  const shirt = await prisma.product.create({
+    data: {
+      name: "Kemeja Katun Casual Pria",
+      slug: "kemeja-katun-casual-pria",
+      description:
+        "Kemeja lengan panjang bahan katun oxford premium yang nyaman seharian.",
+      categoryId: fashion.id,
+      images: {
+        create: [
+          {
+            url: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c",
+            altText: "Kemeja Katun Putih",
+            order: 0,
+          },
+        ],
+      },
+      variants: {
+        create: [
+          {
+            sku: "KMJ-OXF-WHT-L",
+            color: "Putih",
+            size: "L",
+            price: 275000,
+            stock: 40,
+          },
+          {
+            sku: "KMJ-OXF-BLU-M",
+            color: "Biru Muda",
+            size: "M",
+            price: 275000,
+            stock: 35,
+          },
+        ],
+      },
+    },
+    include: { variants: true },
+  });
+
+  const shoes = await prisma.product.create({
+    data: {
+      name: "Sepatu Lari Ultra Cushioning",
+      slug: "sepatu-lari-ultra-cushioning",
+      description:
+        "Sepatu lari sol responsif untuk kenyamanan lari harian dan marathon.",
+      categoryId: sports.id,
+      images: {
+        create: [
+          {
+            url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff",
+            altText: "Sepatu Lari Merah",
+            order: 0,
+          },
+        ],
+      },
+      variants: {
+        create: [
+          {
+            sku: "RUN-ULTRA-42",
+            color: "Hitam Neon",
+            size: "42",
+            price: 950000,
+            stock: 15,
+          },
+          {
+            sku: "RUN-ULTRA-43",
+            color: "Abu-Abu",
+            size: "43",
+            price: 950000,
+            stock: 20,
+          },
+        ],
+      },
+    },
+    include: { variants: true },
+  });
+
+  console.log("Mengisi data pesanan awal...");
+  await prisma.order.create({
+    data: {
+      userId: customer1.id,
+      status: "DELIVERED",
+      totalAmount: 1450000,
+      items: {
+        create: {
+          variantId: headphones.variants[0].id,
+          quantity: 1,
+          price: 1450000,
+        },
+      },
+    },
+  });
+
+  await prisma.order.create({
+    data: {
+      userId: customer2.id,
+      status: "PROCESSING",
+      totalAmount: 820000,
+      items: {
+        create: {
+          variantId: keyboard.variants[0].id,
+          quantity: 1,
+          price: 820000,
+        },
+      },
+    },
+  });
+
+  await prisma.order.create({
+    data: {
+      userId: customer1.id,
+      status: "PENDING",
+      totalAmount: 550000,
+      items: {
+        create: {
+          variantId: shirt.variants[0].id,
+          quantity: 2,
+          price: 275000,
+        },
+      },
+    },
+  });
+
+  console.log("Katalog produk dan pesanan e-commerce berhasil di-seed!");
 }
 
 main()
