@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
+import { sendPaymentReceiptEmail } from "@/lib/mail"
 
 export async function POST(request: NextRequest) {
   const expectedToken = process.env.XENDIT_CALLBACK_TOKEN
@@ -20,7 +21,18 @@ export async function POST(request: NextRequest) {
 
     const order = await prisma.order.findUnique({
       where: { id: externalId },
-      include: { items: true },
+      include: {
+        user: { select: { email: true, name: true } },
+        items: {
+          include: {
+            variant: {
+              include: {
+                product: { select: { name: true } },
+              },
+            },
+          },
+        },
+      },
     })
 
     if (!order) {
@@ -33,13 +45,46 @@ export async function POST(request: NextRequest) {
     }
 
     if (status === "PAID" || status === "SETTLED") {
+      const paymentMethod =
+        payload.payment_method ?? payload.payment_channel ?? "XENDIT"
+
       await prisma.order.update({
         where: { id: order.id },
         data: {
           status: "PAID",
-          paymentMethod: payload.payment_method ?? payload.payment_channel ?? "XENDIT",
+          paymentMethod,
         },
       })
+
+      const appUrl =
+        process.env.NEXT_PUBLIC_APP_URL ||
+        process.env.BETTER_AUTH_URL ||
+        "http://localhost:3000"
+      const recipientEmail = order.user?.email
+
+      if (recipientEmail) {
+        try {
+          await sendPaymentReceiptEmail({
+            to: recipientEmail,
+            recipientName:
+              order.recipientName || order.user?.name || "Pelanggan",
+            orderId: order.id,
+            totalAmount: Number(order.totalAmount),
+            paymentMethod,
+            orderUrl: `${appUrl}/orders/${order.id}`,
+            items: order.items.map((item) => ({
+              name: item.variant?.product?.name || "Produk",
+              quantity: item.quantity,
+              price: Number(item.price),
+            })),
+          })
+        } catch (mailError) {
+          console.error(
+            "[MAIL] Failed to send payment receipt email:",
+            mailError
+          )
+        }
+      }
     } else if (status === "EXPIRED") {
       await prisma.$transaction(async (tx) => {
         await tx.order.update({

@@ -6,6 +6,7 @@ import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { createXenditInvoice } from "@/lib/xendit"
+import { sendOrderConfirmationEmail } from "@/lib/mail"
 
 const checkoutSchema = z.object({
   recipientName: z.string().trim().min(2, "Nama penerima wajib diisi"),
@@ -125,6 +126,26 @@ export async function createCheckoutOrder(input: CheckoutInput) {
         paymentUrl: invoice.invoice_url,
       },
     })
+
+    try {
+      await sendOrderConfirmationEmail({
+        to: session.user.email,
+        recipientName: parsed.data.recipientName,
+        orderId: newOrder.id,
+        totalAmount: Number(newOrder.totalAmount),
+        invoiceUrl: invoice.invoice_url,
+        items: cart.items.map((item) => {
+          const variant = item.variant ?? item.product.variants?.[0]
+          return {
+            name: item.product.name,
+            quantity: item.quantity,
+            price: Number(variant?.price ?? 0),
+          }
+        }),
+      })
+    } catch (mailError) {
+      console.error("[MAIL] Failed to send order confirmation email:", mailError)
+    }
 
     revalidatePath("/")
     revalidatePath("/checkout")
