@@ -37,6 +37,34 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // 2. Proteksi & Rate Limit API Eksternal (/api/v1/*)
+  if (pathname.startsWith("/api/v1")) {
+    const ip = getClientIp(request)
+    const limitResult = checkRateLimit(`api:${ip}`, 30, 60_000)
+
+    if (!limitResult.allowed) {
+      return NextResponse.json(
+        { error: "Terlalu banyak permintaan API" },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(limitResult.retryAfterSeconds),
+          },
+        }
+      )
+    }
+
+    const apiKey = request.headers.get("x-api-key")
+    if (!apiKey || apiKey !== (process.env.API_SECRET_KEY || "dev-api-key-123")) {
+      return NextResponse.json(
+        { error: "Unauthorized: x-api-key tidak valid" },
+        { status: 401 }
+      )
+    }
+
+    return NextResponse.next()
+  }
+
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route))
   const isAdminRoute = pathname.startsWith(ADMIN_PREFIX)
   const isCheckoutRoute = pathname.startsWith(CHECKOUT_PREFIX)
@@ -46,12 +74,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // 2. Pemeriksaan Session dan Role langsung melalui Better Auth
+  // 3. Pemeriksaan Session dan Role langsung melalui Better Auth
   const session = await auth.api.getSession({
     headers: request.headers,
   })
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const role = (session?.user as any)?.role
+  const role = (session?.user as { role?: string })?.role
 
   if (isAuthRoute) {
     if (session) {
