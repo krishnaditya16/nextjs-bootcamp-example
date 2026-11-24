@@ -80,9 +80,8 @@ export const defaultNavGroups: NavGroup[] = [
     items: [
       {
         title: "Orders",
-        href: "#",
+        href: "/admin/orders",
         icon: ShoppingBag,
-        badge: "Soon",
       },
     ],
   },

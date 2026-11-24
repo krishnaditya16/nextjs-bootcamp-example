@@ -100,13 +100,20 @@ model ProductVariant {
 }
 
 model Order {
-  id          String      @id @default(cuid())
-  status      String      @default("PENDING")
-  totalAmount Decimal     @db.Decimal(10, 2) @map("total_amount")
-  createdAt   DateTime    @default(now()) @map("created_at")
-  userId      String      @map("user_id")
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items       OrderItem[]
+  id              String      @id @default(cuid())
+  status          String      @default("PENDING")
+  totalAmount     Decimal     @db.Decimal(10, 2) @map("total_amount")
+  xenditInvoiceId String?     @map("xendit_invoice_id")
+  paymentUrl      String?     @db.Text @map("payment_url")
+  paymentMethod   String?     @map("payment_method")
+  recipientName   String?     @map("recipient_name")
+  phone           String?
+  shippingAddress String?     @db.Text @map("shipping_address")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @default(now()) @updatedAt @map("updated_at")
+  userId          String      @map("user_id")
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items           OrderItem[]
 
   @@map("orders")
 }
