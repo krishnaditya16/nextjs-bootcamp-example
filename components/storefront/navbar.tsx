@@ -22,6 +22,7 @@ import { useCart } from "./cart-context"
 const NAV_LINKS = [
   { label: "Katalog", href: "/products" },
   { label: "Kategori", href: "/#categories" },
+  { label: "Artikel", href: "/articles" },
   { label: "Tentang", href: "/#about" },
 ]
 

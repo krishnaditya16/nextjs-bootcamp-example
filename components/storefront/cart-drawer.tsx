@@ -6,7 +6,14 @@ import { useCart } from "./cart-context"
 import { formatRupiah } from "@/data/products-data"
 
 export function CartDrawer() {
-  const { items, isCartOpen, setIsCartOpen, removeItem, updateQuantity, subtotal } = useCart()
+  const {
+    items,
+    isCartOpen,
+    setIsCartOpen,
+    removeItem,
+    updateQuantity,
+    subtotal,
+  } = useCart()
 
   if (!isCartOpen) return null
 
@@ -32,8 +39,18 @@ export function CartDrawer() {
             onClick={() => setIsCartOpen(false)}
             className="p-2 text-zinc-400 hover:text-zinc-600 rounded-lg hover:bg-zinc-100 transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -43,13 +60,26 @@ export function CartDrawer() {
           {items.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center py-12">
               <div className="w-16 h-16 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-400 mb-4">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                <svg
+                  className="w-8 h-8"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.5"
+                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                  />
                 </svg>
               </div>
-              <p className="text-zinc-900 font-semibold mb-1">Keranjang masih kosong</p>
+              <p className="text-zinc-900 font-semibold mb-1">
+                Keranjang masih kosong
+              </p>
               <p className="text-xs text-zinc-500 max-w-xs mb-6">
-                Jelajahi produk berkualitas kami dan tambahkan barang ke dalam keranjang.
+                Jelajahi produk berkualitas kami dan tambahkan barang ke dalam
+                keranjang.
               </p>
               <button
                 onClick={() => setIsCartOpen(false)}
@@ -61,7 +91,7 @@ export function CartDrawer() {
           ) : (
             items.map((item) => (
               <div
-                key={item.variant.id}
+                key={item.id}
                 className="flex gap-4 p-3 rounded-xl border border-zinc-100 hover:border-zinc-200 transition-colors bg-white"
               >
                 {/* Thumbnail */}
@@ -70,9 +100,10 @@ export function CartDrawer() {
                     src={
                       (typeof item.product.images[0] === "string"
                         ? item.product.images[0]
-                        : item.product.images[0]?.url) || ""
+                        : item.product.images[0]?.url) ||
+                      "/placeholder/product.jpg"
                     }
-                    alt={item.product.title}
+                    alt={item.product.name || item.product.title || "Produk"}
                     fill
                     className="object-cover"
                   />
@@ -82,13 +113,18 @@ export function CartDrawer() {
                 <div className="flex-1 min-w-0 flex flex-col justify-between">
                   <div>
                     <h3 className="text-sm font-semibold text-zinc-900 truncate">
-                      {item.product.title}
+                      {item.product.name || item.product.title}
                     </h3>
                     <p className="text-xs text-zinc-500 mt-0.5">
-                      Varian: <span className="font-medium text-zinc-700">{item.variant.name}</span>
+                      Varian:{" "}
+                      <span className="font-medium text-zinc-700">
+                        {item.variant?.name || "Standar"}
+                      </span>
                     </p>
                     <p className="text-xs font-bold text-zinc-900 mt-1">
-                      {formatRupiah(item.variant.price)}
+                      {item.variant
+                        ? formatRupiah(item.variant.price)
+                        : formatRupiah(0)}
                     </p>
                   </div>
 
@@ -96,7 +132,9 @@ export function CartDrawer() {
                   <div className="flex items-center justify-between pt-2">
                     <div className="flex items-center border border-zinc-200 rounded-lg">
                       <button
-                        onClick={() => updateQuantity(item.variant.id, item.quantity - 1)}
+                        onClick={() =>
+                          updateQuantity(item.id, item.quantity - 1)
+                        }
                         className="w-7 h-7 flex items-center justify-center text-zinc-600 hover:bg-zinc-100 rounded-l-lg transition-colors text-xs font-bold"
                       >
                         -
@@ -105,7 +143,9 @@ export function CartDrawer() {
                         {item.quantity}
                       </span>
                       <button
-                        onClick={() => updateQuantity(item.variant.id, item.quantity + 1)}
+                        onClick={() =>
+                          updateQuantity(item.id, item.quantity + 1)
+                        }
                         className="w-7 h-7 flex items-center justify-center text-zinc-600 hover:bg-zinc-100 rounded-r-lg transition-colors text-xs font-bold"
                       >
                         +
@@ -113,7 +153,7 @@ export function CartDrawer() {
                     </div>
 
                     <button
-                      onClick={() => removeItem(item.variant.id)}
+                      onClick={() => removeItem(item.id)}
                       className="text-xs text-red-500 hover:text-red-700 font-medium"
                     >
                       Hapus
@@ -130,7 +170,9 @@ export function CartDrawer() {
           <div className="p-5 border-t border-zinc-200 bg-zinc-50/70 space-y-4">
             <div className="flex items-center justify-between text-sm">
               <span className="text-zinc-600">Subtotal</span>
-              <span className="text-base font-bold text-zinc-900">{formatRupiah(subtotal)}</span>
+              <span className="text-base font-bold text-zinc-900">
+                {formatRupiah(subtotal)}
+              </span>
             </div>
             <p className="text-[11px] text-zinc-500">
               Pajak dan biaya pengiriman akan dihitung saat checkout pembayaran.

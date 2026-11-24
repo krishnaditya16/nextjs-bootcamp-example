@@ -26,6 +26,7 @@ export function Footer() {
             <ul className="flex flex-col gap-2 text-xs text-zinc-600">
               <li><Link href="/products" className="hover:text-zinc-900 transition-colors">Katalog Produk</Link></li>
               <li><Link href="/#categories" className="hover:text-zinc-900 transition-colors">Kategori</Link></li>
+              <li><Link href="/articles" className="hover:text-zinc-900 transition-colors">Artikel &amp; Panduan</Link></li>
               <li><Link href="/#about" className="hover:text-zinc-900 transition-colors">Tentang Kami</Link></li>
               <li><Link href="/#help" className="hover:text-zinc-900 transition-colors">Bantuan &amp; FAQ</Link></li>
             </ul>
