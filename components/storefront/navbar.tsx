@@ -39,8 +39,9 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { data: session } = useSession()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const user = session?.user as any
+  const user = session?.user as
+    | { name?: string | null; email?: string | null; image?: string | null; role?: string }
+    | undefined
   const isAdmin = user?.role === "admin"
   const initials = user?.name ? getInitials(user.name) : "U"
 

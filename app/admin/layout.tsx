@@ -15,8 +15,7 @@ export default async function AdminLayout({
     redirect("/login")
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const userRole = (session.user as any)?.role
+  const userRole = (session.user as { role?: string })?.role
 
   if (userRole !== "admin") {
     redirect("/")

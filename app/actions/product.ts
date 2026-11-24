@@ -1,23 +1,12 @@
 "use server"
 
-import { headers } from "next/headers"
 import { revalidatePath } from "next/cache"
-import { auth } from "@/lib/auth"
+import { requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { Prisma } from "@prisma/client"
 import { productSchema, type ProductFormValues } from "@/lib/schemas/product"
+import { saveUploadedImages, deleteLocalFile } from "@/lib/upload"
 import type { Product } from "@/data/products-data"
-
-async function requireAdmin() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (!session || (session.user as any)?.role !== "admin") {
-    throw new Error("Akses ditolak. Hanya admin yang diizinkan.")
-  }
-}
 
 export interface GetProductsParams {
   page?: number
@@ -306,6 +295,28 @@ export async function getProductById(id: string): Promise<Product | null> {
   }
 }
 
+export async function uploadProductImages(formData: FormData) {
+  await requireAdmin()
+
+  const files = formData
+    .getAll("files")
+    .filter((entry): entry is File => entry instanceof File && entry.size > 0)
+
+  if (files.length === 0) {
+    return { error: "Pilih minimal satu file gambar" }
+  }
+
+  try {
+    const urls = await saveUploadedImages(files, "products")
+    return { urls }
+  } catch (err: unknown) {
+    console.error("Gagal mengupload gambar:", err)
+    return {
+      error: err instanceof Error ? err.message : "Gagal mengunggah file gambar.",
+    }
+  }
+}
+
 export async function createProduct(values: ProductFormValues) {
   await requireAdmin()
 
@@ -329,6 +340,13 @@ export async function createProduct(values: ProductFormValues) {
             color: v.color || null,
             price: v.price,
             stock: v.stock,
+          })),
+        },
+        images: {
+          create: (parsed.data.images || []).map((img, idx) => ({
+            url: img.url,
+            altText: img.altText || null,
+            order: img.order ?? idx,
           })),
         },
       },
@@ -360,12 +378,28 @@ export async function updateProduct(id: string, values: ProductFormValues) {
 
   try {
     const updated = await prisma.$transaction(async (tx) => {
-      // 1. Hapus varian lama produk
-      await tx.productVariant.deleteMany({
+      // 1. Ambil data gambar lama untuk mendeteksi file yang dihapus
+      const existingImages = await tx.productImage.findMany({
         where: { productId: id },
       })
 
-      // 2. Update field produk dan buat varian baru
+      const incomingUrls = new Set((parsed.data.images || []).map((img) => img.url))
+      const removedImages = existingImages.filter((img) => !incomingUrls.has(img.url))
+
+      // 2. Hapus varian dan gambar lama dari database
+      await tx.productVariant.deleteMany({
+        where: { productId: id },
+      })
+      await tx.productImage.deleteMany({
+        where: { productId: id },
+      })
+
+      // 3. Hapus file fisik lokal yang sudah tidak dipakai
+      for (const img of removedImages) {
+        await deleteLocalFile(img.url)
+      }
+
+      // 4. Update field produk dan buat varian serta gambar baru
       return tx.product.update({
         where: { id },
         data: {
@@ -381,6 +415,13 @@ export async function updateProduct(id: string, values: ProductFormValues) {
               color: v.color || null,
               price: v.price,
               stock: v.stock,
+            })),
+          },
+          images: {
+            create: (parsed.data.images || []).map((img, idx) => ({
+              url: img.url,
+              altText: img.altText || null,
+              order: img.order ?? idx,
             })),
           },
         },
@@ -408,11 +449,20 @@ export async function deleteProduct(id: string) {
   await requireAdmin()
 
   try {
+    const images = await prisma.productImage.findMany({
+      where: { productId: id },
+    })
+
     await prisma.product.delete({
       where: { id },
     })
 
+    for (const img of images) {
+      await deleteLocalFile(img.url)
+    }
+
     revalidatePath("/admin/products")
+    revalidatePath("/products")
     return { success: true }
   } catch {
     return { error: "Gagal menghapus produk dari database." }

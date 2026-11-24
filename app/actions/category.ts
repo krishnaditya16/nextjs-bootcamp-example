@@ -1,21 +1,9 @@
 "use server"
 
-import { headers } from "next/headers"
 import { revalidatePath } from "next/cache"
-import { auth } from "@/lib/auth"
+import { requireAdmin } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { categorySchema, type CategoryFormValues } from "@/lib/schemas/category"
-
-async function requireAdmin() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (!session || (session.user as any)?.role !== "admin") {
-    throw new Error("Akses ditolak. Hanya admin yang diizinkan.")
-  }
-}
 
 export async function getCategories() {
   return prisma.category.findMany({

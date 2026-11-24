@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  useMemo,
   useRef,
   useState,
   type ChangeEvent,
@@ -48,6 +49,7 @@ import {
 } from "@/components/ui/table"
 import { ConfirmDiscardDialog } from "@/components/admin/crud-primitives/confirm-discard-dialog"
 import { slugify } from "@/lib/utils"
+import { uploadProductImages } from "@/app/actions/product"
 import {
   DEFAULT_CATEGORIES,
   type Product,
@@ -129,6 +131,32 @@ export function ProductForm({
       ""
   )
 
+  const statusItems = useMemo(
+    () => ({
+      active: "Active (Published)",
+      draft: "Draft (Hidden)",
+    }),
+    []
+  )
+
+  const categoryItems = useMemo(() => {
+    const map: Record<string, string> = {
+      none: "Uncategorized",
+    }
+    if (
+      typeof initialData?.category === "object" &&
+      initialData?.category !== null &&
+      "id" in initialData.category &&
+      "name" in initialData.category
+    ) {
+      map[initialData.category.id] = initialData.category.name
+    }
+    categories.forEach((cat) => {
+      map[cat.id] = cat.name
+    })
+    return map
+  }, [categories, initialData])
+
   // Product Gallery State
   const [images, setImages] = useState<FormProductImage[]>(() => {
     if (initialData?.images && initialData.images.length > 0) {
@@ -150,6 +178,7 @@ export function ProductForm({
   })
   const [urlInput, setUrlInput] = useState("")
   const [isDragOver, setIsDragOver] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   // Product Variants State
@@ -225,7 +254,7 @@ export function ProductForm({
   }
 
   // Image actions
-  const handleFiles = (files: FileList | File[]) => {
+  const handleFiles = async (files: FileList | File[]) => {
     const validFiles = Array.from(files).filter((file) =>
       file.type.startsWith("image/")
     )
@@ -233,15 +262,32 @@ export function ProductForm({
       toast.error("Please upload valid image files.")
       return
     }
-    const newImages: FormProductImage[] = validFiles.map((file, idx) => ({
-      id: `temp-${Date.now()}-${idx}`,
-      url: URL.createObjectURL(file),
-      altText: file.name.replace(/\.[^/.]+$/, ""),
-      order: images.length + idx,
-      file,
-    }))
-    setImages((prev) => [...prev, ...newImages])
-    toast.success(`Added ${newImages.length} image${newImages.length > 1 ? "s" : ""}.`)
+
+    setIsUploading(true)
+    try {
+      const formData = new FormData()
+      validFiles.forEach((file) => formData.append("files", file))
+
+      const res = await uploadProductImages(formData)
+      if (res.error || !res.urls) {
+        toast.error(res.error || "Gagal mengunggah gambar.")
+        return
+      }
+
+      const newImages: FormProductImage[] = res.urls.map((url, idx) => ({
+        id: `uploaded-${Date.now()}-${idx}`,
+        url,
+        altText: validFiles[idx]?.name.replace(/\.[^/.]+$/, "") || "",
+        order: images.length + idx,
+      }))
+
+      setImages((prev) => [...prev, ...newImages])
+      toast.success(`Berhasil mengunggah ${newImages.length} gambar.`)
+    } catch {
+      toast.error("Terjadi kesalahan saat mengunggah file.")
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -380,7 +426,9 @@ export function ProductForm({
       })),
       images: images.map((img, idx) => ({
         id:
-          img.id.startsWith("temp-") || img.id.startsWith("url-")
+          img.id.startsWith("temp-") ||
+          img.id.startsWith("url-") ||
+          img.id.startsWith("uploaded-")
             ? undefined
             : img.id,
         url: img.url,
@@ -422,15 +470,20 @@ export function ProductForm({
             variant="outline"
             size="sm"
             onClick={() => setIsDiscardOpen(true)}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isUploading}
           >
             Discard
           </Button>
-          <Button size="sm" type="submit" disabled={isSubmitting}>
+          <Button size="sm" type="submit" disabled={isSubmitting || isUploading}>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 size-3.5 animate-spin" />
                 Saving...
+              </>
+            ) : isUploading ? (
+              <>
+                <Loader2 className="mr-2 size-3.5 animate-spin" />
+                Uploading...
               </>
             ) : (
               submitButtonText
@@ -638,11 +691,16 @@ export function ProductForm({
               <div className="space-y-2">
                 <Label htmlFor="status-select">Visibility</Label>
                 <Select
+                  items={statusItems}
                   value={isActive ? "active" : "draft"}
                   onValueChange={(val) => setIsActive(val === "active")}
                 >
                   <SelectTrigger id="status-select" className="w-full">
-                    <SelectValue placeholder="Select status" />
+                    <SelectValue placeholder="Select status">
+                      {(val) =>
+                        statusItems[val as keyof typeof statusItems] ?? "Select status"
+                      }
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="active">Active (Published)</SelectItem>
@@ -663,13 +721,20 @@ export function ProductForm({
               <div className="space-y-2">
                 <Label htmlFor="category-select">Category</Label>
                 <Select
+                  items={categoryItems}
                   value={categoryId || "none"}
                   onValueChange={(val) =>
                     setCategoryId(val === "none" || !val ? "" : val)
                   }
                 >
                   <SelectTrigger id="category-select" className="w-full">
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder="Select category">
+                      {(val) =>
+                        val && categoryItems[val as string]
+                          ? categoryItems[val as string]
+                          : "Select category"
+                      }
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Uncategorized</SelectItem>
@@ -793,19 +858,33 @@ export function ProductForm({
 
                 {/* Upload Trigger Box */}
                 <div
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`aspect-square flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed text-xs text-muted-foreground transition-all cursor-pointer hover:border-primary hover:text-foreground hover:bg-muted/30 ${
+                  onDragOver={isUploading ? undefined : handleDragOver}
+                  onDragLeave={isUploading ? undefined : handleDragLeave}
+                  onDrop={isUploading ? undefined : handleDrop}
+                  onClick={() => !isUploading && fileInputRef.current?.click()}
+                  className={`aspect-square flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed text-xs text-muted-foreground transition-all ${
+                    isUploading
+                      ? "opacity-60 cursor-not-allowed border-primary/50 bg-primary/5"
+                      : "cursor-pointer hover:border-primary hover:text-foreground hover:bg-muted/30"
+                  } ${
                     isDragOver
                       ? "border-primary bg-primary/5 text-primary scale-98"
                       : "border-muted-foreground/25"
                   }`}
                 >
-                  <UploadCloud className="size-5" />
-                  <span className="font-medium text-xs">Upload</span>
-                  <span className="text-[10px] text-muted-foreground">Drop or browse</span>
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="size-5 animate-spin text-primary" />
+                      <span className="font-medium text-xs text-primary">Uploading...</span>
+                      <span className="text-[10px] text-muted-foreground">Menyimpan file</span>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="size-5" />
+                      <span className="font-medium text-xs">Upload</span>
+                      <span className="text-[10px] text-muted-foreground">Drop or browse</span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -844,15 +923,20 @@ export function ProductForm({
           type="button"
           variant="outline"
           onClick={() => setIsDiscardOpen(true)}
-          disabled={isSubmitting}
+          disabled={isSubmitting || isUploading}
         >
           Discard
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || isUploading}>
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 size-3.5 animate-spin" />
               Saving...
+            </>
+          ) : isUploading ? (
+            <>
+              <Loader2 className="mr-2 size-3.5 animate-spin" />
+              Uploading...
             </>
           ) : (
             submitButtonText

@@ -46,8 +46,9 @@ export function UserNav({
   const router = useRouter()
   const { data: session } = useSession()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sessionUser = session?.user as any
+  const sessionUser = session?.user as
+    | { name?: string | null; email?: string | null; image?: string | null; role?: string }
+    | undefined
   const user = controlledUser || (sessionUser ? {
     name: sessionUser.name || "Super Admin",
     email: sessionUser.email || "admin@tokokita.dev",

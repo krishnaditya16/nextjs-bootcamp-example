@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
@@ -16,6 +16,7 @@ import type { ProductCategory } from "@/data/products-data"
 
 export function NewProductClient() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const { data: dbCategories = [] } = useQuery({
@@ -47,6 +48,7 @@ export function NewProductClient() {
         price: Number(v.price) || 0,
         stock: Number(v.stock) || 0,
       })),
+      images: data.images,
     })
     setIsSubmitting(false)
 
@@ -55,8 +57,10 @@ export function NewProductClient() {
       return
     }
 
+    await queryClient.invalidateQueries({ queryKey: ["products"] })
     toast.success(`Produk "${data.name}" berhasil dibuat!`)
     router.push("/admin/products")
+    router.refresh()
   }
 
   return (

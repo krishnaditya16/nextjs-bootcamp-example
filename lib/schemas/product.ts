@@ -1,5 +1,12 @@
 import { z } from "zod"
 
+export const productImageSchema = z.object({
+  id: z.string().optional(),
+  url: z.string().min(1, "URL gambar tidak boleh kosong"),
+  altText: z.string().optional().nullable(),
+  order: z.number().int().min(0).default(0),
+})
+
 export const productVariantSchema = z.object({
   id: z.string().optional(),
   sku: z.string().trim().min(3, "SKU minimal 3 karakter"),
@@ -22,7 +29,9 @@ export const productSchema = z.object({
   variants: z
     .array(productVariantSchema)
     .min(1, "Minimal harus ada 1 varian produk"),
+  images: z.array(productImageSchema).optional().default([]),
 })
 
+export type ProductImageFormValues = z.infer<typeof productImageSchema>
 export type ProductVariantFormValues = z.infer<typeof productVariantSchema>
 export type ProductFormValues = z.infer<typeof productSchema>
