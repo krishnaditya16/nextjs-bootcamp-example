@@ -27,8 +27,11 @@ export default async function OrderDetailPage({
     redirect(`/login?callbackUrl=/orders/${id}`)
   }
 
-  const order = await prisma.order.findUnique({
-    where: { id },
+  const userRole = (session.user as { role?: string })?.role
+  const isAdmin = userRole === "admin"
+
+  const order = await prisma.order.findFirst({
+    where: isAdmin ? { id } : { id, userId: session.user.id },
     include: {
       user: {
         select: {
@@ -53,11 +56,6 @@ export default async function OrderDetailPage({
   })
 
   if (!order) {
-    notFound()
-  }
-
-  const userRole = (session.user as { role?: string })?.role
-  if (order.userId !== session.user.id && userRole !== "admin") {
     notFound()
   }
 
